@@ -18,3 +18,4 @@ env/
 *backup*.sql
 *dump*.sql
 *.lock
+data/
