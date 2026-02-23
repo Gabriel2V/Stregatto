@@ -98,8 +98,8 @@ def send_email(tool_input, cat):
     Esegue l'invio effettivo dell'email tramite protocollo SMTP.
     Usare SOLO dopo aver mostrato l'anteprima con 'preview_email' e ottenuto conferma dall'utente.
     L'input DEVE essere un JSON valido con questa struttura:
-    {"recipient": "email@esempio.com", "subject": "Oggetto opzionale", "body": "Testo del messaggio"}
-    Il campo 'subject' è facoltativo: se omesso viene generato automaticamente dall'AI.
+    {"recipient": "email@esempio.com", "subject": "Oggetto confermato", "body": "Testo del messaggio"}
+    Assicurati di includere sempre nel campo 'subject' l'oggetto esatto che è stato mostrato e approvato nell'anteprima, per evitare che venga generato da zero.
     """
     send_ws_notification(cat, "Preparazione invio in corso...", "info")
 

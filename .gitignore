@@ -20,3 +20,5 @@ env/
 *.lock
 data/
 **/**/settings.json
+# Stato interno del plugin (cursore UID email)
+.email_state.json

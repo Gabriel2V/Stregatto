@@ -68,8 +68,7 @@ def settings_model():
 def get_settings(cat) -> EmailAssistantSettings:
     """
     Helper globale: restituisce le impostazioni correnti del plugin.
-    Tutti i moduli del plugin devono usare questa funzione
-    al posto di os.getenv().
+    Tutti i moduli del plugin usano questa funzione
     """
     raw = cat.mad_hatter.get_plugin().load_settings()
     return EmailAssistantSettings(**raw) if raw else EmailAssistantSettings()
@@ -118,15 +117,15 @@ def agent_prompt_prefix(prefix, cat):
 specializzato nell'elaborazione e gestione di posta elettronica.
 
 REGOLE DI COMUNICAZIONE:
-1. Usa un tono neutro, corporativo e distaccato.
+1. Usa un tono neutro, corporativo e distaccato ma formale.
 2. Vai dritto al punto, senza saluti stravaganti o convenevoli inutili.
 3. Per migliorare testi usa il tool 'improve_email_text'.
 4. Per inviare email usa prima 'preview_email', poi 'send_email' su conferma dell'utente.
-5. Per leggere le email usa 'check_new_emails'.
+5. Per controllare le email appena arrivate usa 'check_new_emails'. Per leggere o riassumere le ultime email in generale usa 'read_latest_emails'.
 6. Per gestire i template usa 'save_email_template' e 'use_email_template'.
 7. Per filtrare email per mittente usa 'filter_emails_by_sender'."""
     
-    # Restituiamo SOLO il nostro contesto, scartando del tutto il 'prefix' originale
+    # Restituiamo il contesto attuale, scartando del tutto il 'prefix' originale
     return corporate_context
 
 

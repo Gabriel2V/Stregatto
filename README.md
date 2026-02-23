@@ -1,4 +1,4 @@
-# 📧 Email Assistant — Plugin per Cheshire Cat AI
+# Email Assistant — Plugin per Cheshire Cat AI
 
 Un agente AI per la composizione, ottimizzazione e gestione di email aziendali, integrato direttamente nella chat di [Cheshire Cat AI](https://cheshirecat.ai/).
 
@@ -8,6 +8,8 @@ Un agente AI per la composizione, ottimizzazione e gestione di email aziendali, 
 
 - **Invio email via SMTP** con anteprima obbligatoria prima della conferma
 - **Lettura email via IMAP** con tracciamento delle email già viste
+- **Recupero ultime email** scavalcando lo storico di quelle già lette per riassunti e riletture
+- **Controllo periodico automatico** della casella ogni 2 minuti con notifica in chat
 - **Generazione automatica dell'oggetto** tramite LLM, se non fornito dall'utente
 - **Ottimizzazione del testo** per rendere le bozze più professionali e formali
 - **Template riutilizzabili** con supporto a segnaposto dinamici `{{nome}}`
@@ -22,11 +24,13 @@ Un agente AI per la composizione, ottimizzazione e gestione di email aziendali, 
 ```
 email_assistant/
 ├── main.py               # Settings, hook personalità, tool miglioramento testo
-├── email_agent.py        # Tool preview_email e send_email (SMTP)
-├── email_reader.py       # Tool check_new_emails e filter_emails_by_sender (IMAP)
+├── email_sender.py        # Tool preview_email e send_email (SMTP)
+├── email_reader.py       # Tool check_new_emails, filter_emails_by_sender (IMAP) + scheduler
 ├── email_templates.py    # Tool per salvare, usare, elencare ed eliminare template
 └── plugin.json           # Metadati del plugin
 ```
+
+> **Nota:** il file `.email_state.json` viene creato automaticamente nella cartella del plugin al primo controllo. Conserva il cursore UID per evitare notifiche duplicate tra il controllo manuale e quello automatico. È escluso dal versioning tramite `.gitignore`.
 
 ---
 
@@ -104,6 +108,13 @@ a venire alla riunione, scusa"
 Ci sono nuove email?
 ```
 
+Il plugin controlla automaticamente la casella ogni 2 minuti e notifica in chat se arrivano nuovi messaggi. È comunque possibile chiedere un controllo manuale in qualsiasi momento.
+
+### Leggere o riassumere le ultime email
+
+```text
+Leggimi le ultime 3 email arrivate
+
 ### Filtrare email per mittente
 
 ```
@@ -142,9 +153,10 @@ Elimina il template "follow_up"
 | Tool | File | Descrizione |
 |---|---|---|
 | `improve_email_text` | `main.py` | Riscrive un testo in chiave professionale |
-| `preview_email` | `email_agent.py` | Genera anteprima prima dell'invio |
-| `send_email` | `email_agent.py` | Invia l'email via SMTP |
+| `preview_email` | `email_sender.py` | Genera anteprima prima dell'invio |
+| `send_email` | `email_sender.py` | Invia l'email via SMTP |
 | `check_new_emails` | `email_reader.py` | Recupera le nuove email dalla inbox |
+| `read_latest_emails` | `email_reader.py` | Legge le mail recenti ignorando lo storico |
 | `filter_emails_by_sender` | `email_reader.py` | Cerca email per mittente |
 | `save_email_template` | `email_templates.py` | Salva un template riutilizzabile |
 | `use_email_template` | `email_templates.py` | Carica un template per l'invio |

@@ -4,7 +4,7 @@
     "episodic_memory_threshold": 0.7,
     "declarative_memory_k": 3,
     "declarative_memory_threshold": 0.7,
-    "procedural_memory_k": 1,
+    "procedural_memory_k": 3,
     "procedural_memory_threshold": 0.7,
     "user_name": "Human",
     "language": "Italian",
