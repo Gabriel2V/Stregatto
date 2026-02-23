@@ -120,13 +120,53 @@ REGOLE DI COMUNICAZIONE:
 1. Usa un tono neutro, corporativo e distaccato ma formale.
 2. Vai dritto al punto, senza saluti stravaganti o convenevoli inutili.
 3. Per migliorare testi usa il tool 'improve_email_text'.
-4. Per inviare email usa prima 'preview_email', poi 'send_email' su conferma dell'utente.
-5. Per controllare le email appena arrivate usa 'check_new_emails'. Per leggere o riassumere le ultime email in generale usa 'read_latest_emails'.
+4. Per inviare nuove email usa prima 'preview_email', poi 'send_email' su conferma. Per rispondere a un'email ricevuta usa prima 'preview_reply', poi 'send_reply' su conferma.
+5. Per controllare le email appena arrivate usa 'check_new_emails'. Per leggere o riassumere le ultime email usa 'read_latest_emails'.
 6. Per gestire i template usa 'save_email_template' e 'use_email_template'.
-7. Per filtrare email per mittente usa 'filter_emails_by_sender'."""
+7. Per filtrare email per mittente usa 'filter_emails_by_sender'.
+
+REGOLE FONDAMENTALI SUI TOOL — NON DEROGABILI:
+- NON scrivere mai il testo di un'email nella risposta in chat. Usa SEMPRE i tool appositi.
+- NON simulare mai un invio nel testo. Un'email è inviata SOLO quando il tool 'send_email' o 'send_reply' restituisce conferma.
+- Prima di inviare qualsiasi email, chiama SEMPRE il tool 'preview_email' o 'preview_reply' e attendi la conferma esplicita dell'utente.
+- Se l'utente conferma l'invio, chiama immediatamente 'send_email' o 'send_reply' senza riscrivere il testo in chat.
+- VIETATO scrivere frasi come "Tool: nome_tool" o "Parameters: ..." o "Chiamerò il tool": non eseguono nulla. I tool si invocano direttamente, mai descritti.
+- Se l'indirizzo email del destinatario è mancante o non valido, chiedi SOLO l'indirizzo. Quando l'utente lo fornisce, invoca subito 'preview_email' senza ulteriori conferme.
+- Se l'utente dice "invia" o "ok" o "sì" dopo aver visto l'anteprima, invoca subito 'send_email' senza chiedere ulteriori conferme."""
     
     # Restituiamo il contesto attuale, scartando del tutto il 'prefix' originale
     return corporate_context
+
+
+@hook(priority=0)
+def before_cat_sends_message(message, cat):
+    """
+    Intercetta la risposta finale prima che venga inviata all'utente.
+    Pulisce eventuali artefatti di simulazione tool (Tool: ..., Parameters: ...)
+    che il LLM potrebbe generare nel MAIN PROMPT invece di invocare il tool direttamente.
+    """
+    import re
+    text = message.get("content", "")
+    if not text:
+        return message
+
+    # Rimuove blocchi del tipo:
+    # "Tool: `nome_tool`\nParameters: `{...}`"
+    # "Chiamerò il tool `nome`\n..."
+    # "```json\n{\n  \"tool_code\": ...\n}\n```"
+    patterns = [
+        r"Tool:\s*`[^`]+`\s*\nParameters:\s*`[^`]+`",
+        r"Chiamerò il tool `[^`]+`[^\n]*\n(?:- `[^`]+`:\s*[^\n]+\n)*",
+        r"""```json\s*\{\s*["']tool_code["'][^}]+\}\s*```""",
+        r"\*\*Tool Call:\*\*\s*```json[^`]+```",
+    ]
+    for pattern in patterns:
+        text = re.sub(pattern, "", text, flags=re.DOTALL)
+
+    text = text.strip()
+    if text:
+        message["content"] = text
+    return message
 
 
 # Tool per miglioramento testo email bozza

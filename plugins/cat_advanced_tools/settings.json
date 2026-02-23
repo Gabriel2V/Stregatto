@@ -1,11 +1,11 @@
 {
     "prompt_prefix": "",
     "episodic_memory_k": 3,
-    "episodic_memory_threshold": 0.7,
+    "episodic_memory_threshold": 0.9,
     "declarative_memory_k": 3,
     "declarative_memory_threshold": 0.7,
     "procedural_memory_k": 3,
-    "procedural_memory_threshold": 0.7,
+    "procedural_memory_threshold": 0.65,
     "user_name": "Human",
     "language": "Italian",
     "chunk_size": 256,

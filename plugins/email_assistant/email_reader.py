@@ -71,7 +71,10 @@ def _scheduled_email_check(cat_core):
     if result is None:
         return  # Nessuna novità, silenzio
 
-    new_count, formatted_text = result
+    new_emails_data, formatted_text = result 
+    new_count = len(new_emails_data)
+    _active_cat.working_memory.last_emails = new_emails_data 
+    
     log.info(f"[EmailScheduler] {new_count} nuove email trovate.")
 
     message = f" **{new_count} nuov{'a email' if new_count == 1 else 'e email'} ricevut{'a' if new_count == 1 else 'e'}**\n\n{formatted_text}"
@@ -144,7 +147,7 @@ def _fetch_new_emails_sync(settings) -> tuple | None:
             return None
 
         _write_last_uid(highest_uid)
-        return len(emails_data), format_email_list(emails_data)
+        return emails_data, format_email_list(emails_data)
 
     except imaplib.IMAP4.error as e:
         log.error(f"[EmailAssistant] Errore autenticazione IMAP: {e}")
@@ -199,24 +202,25 @@ def connect_imap(settings):
 
 
 def fetch_email_summaries(mail, uids_to_process: list, preview_length: int) -> list:
-    """Recupera mittente, oggetto e anteprima corpo per ogni UID fornito."""
+    """Recupera mittente, oggetto, anteprima e Message-ID per ogni UID fornito."""
     emails_data = []
     for uid in uids_to_process:
         try:
             res, msg_data = mail.uid('fetch', uid, '(BODY.PEEK[])')
             if res != 'OK':
-                print(f"[EmailAssistant] Impossibile recuperare UID {uid}: status {res}")
                 continue
             for response_part in msg_data:
                 if isinstance(response_part, tuple):
                     msg = email.message_from_bytes(response_part[1])
                     subject = decode_header_value(msg.get("Subject", "(nessun oggetto)"))
                     sender = decode_header_value(msg.get("From", "(mittente sconosciuto)"))
+                    message_id = decode_header_value(msg.get("Message-ID", "")) # <--- NUOVO
                     body = get_email_body(msg)
                     emails_data.append({
                         "uid": int(uid),
                         "sender": sender,
                         "subject": subject,
+                        "message_id": message_id, # <--- NUOVO
                         "body_preview": body[:preview_length]
                     })
         except Exception as e:
@@ -225,15 +229,15 @@ def fetch_email_summaries(mail, uids_to_process: list, preview_length: int) -> l
 
 
 def format_email_list(emails_data: list) -> str:
-    """Formatta una lista di dizionari email in testo leggibile."""
+    """Formatta una lista di dizionari email in testo leggibile con ID."""
     parts = []
-    for e in emails_data:
+    for i, e in enumerate(emails_data, 1):
         parts.append(
-            f"Da: {e['sender']}\n"
+            f"[ID: {i}] Da: {e['sender']}\n"
             f"Oggetto: {e['subject']}\n"
             f"Messaggio:\n{e['body_preview']}..."
         )
-    return "Nuove email trovate:\n\n" + "\n\n---\n\n".join(parts)
+    return "Email trovate:\n\n" + "\n\n---\n\n".join(parts)
 
 
 # Tool: controllo manuale nuove mail
@@ -257,8 +261,10 @@ def check_new_emails(tool_input, cat):
         send_ws_notification(cat, "Nessuna nuova email trovata.", "info")
         return "Nessun nuovo messaggio dall'ultimo controllo."
 
-    new_count, formatted_text = result
-    send_ws_notification(cat, f"Trovate {new_count} nuove email.", "success")
+    new_emails_data, formatted_text = result
+    cat.working_memory.last_emails = new_emails_data
+    
+    send_ws_notification(cat, f"Trovate {len(new_emails_data)} nuove email.", "success")
     return formatted_text
 
 
@@ -313,6 +319,7 @@ def filter_emails_by_sender(sender_filter, cat):
                 f"Oggetto: {e['subject']}\n"
                 f"Messaggio:\n{e['body_preview']}..."
             )
+        cat.working_memory.last_emails = emails_data
         return (
             f"Email da '{sender_filter}' ({len(emails_data)} trovate):\n\n"
             + "\n\n---\n\n".join(parts)
@@ -365,6 +372,7 @@ def read_latest_emails(tool_input, cat):
 
         send_ws_notification(cat, f"Recuperate le ultime {len(emails_data)} email.", "success")
         
+        cat.working_memory.last_emails = emails_data
         # Rimuove l'intestazione standard di format_email_list per adattarla al contesto
         formatted_list = format_email_list(emails_data).replace("Nuove email trovate:\n\n", "")
         return f"Ultime {len(emails_data)} email presenti in casella:\n\n{formatted_list}"

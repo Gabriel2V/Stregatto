@@ -11,7 +11,7 @@ MAX_TEMPLATES = 20
 
 def load_templates(cat) -> dict:
     """Carica il dizionario dei template dalla memoria episodica del Cat."""
-    raw = cat.working_memory.get(TEMPLATES_MEMORY_KEY, None)
+    raw = getattr(cat.working_memory, "email_templates", None)
     if raw is None:
         return {}
     if isinstance(raw, dict):
@@ -25,7 +25,7 @@ def load_templates(cat) -> dict:
 
 def save_templates(cat, templates: dict) -> None:
     """Salva il dizionario dei template nella memoria episodica del Cat."""
-    cat.working_memory[TEMPLATES_MEMORY_KEY] = templates
+    cat.working_memory.email_templates = templates
 
 
 def sanitize_name(name: str) -> str:

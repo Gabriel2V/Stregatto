@@ -24,7 +24,7 @@ Un agente AI per la composizione, ottimizzazione e gestione di email aziendali, 
 ```
 email_assistant/
 ├── main.py               # Settings, hook personalità, tool miglioramento testo
-├── email_sender.py        # Tool preview_email e send_email (SMTP)
+├── email_sender.py       # Tool preview_email, send_email, preview_reply, send_reply (SMTP)
 ├── email_reader.py       # Tool check_new_emails, filter_emails_by_sender (IMAP) + scheduler
 ├── email_templates.py    # Tool per salvare, usare, elencare ed eliminare template
 └── plugin.json           # Metadati del plugin
@@ -112,8 +112,9 @@ Il plugin controlla automaticamente la casella ogni 2 minuti e notifica in chat 
 
 ### Leggere o riassumere le ultime email
 
-```text
+```
 Leggimi le ultime 3 email arrivate
+```
 
 ### Filtrare email per mittente
 
@@ -153,8 +154,10 @@ Elimina il template "follow_up"
 | Tool | File | Descrizione |
 |---|---|---|
 | `improve_email_text` | `main.py` | Riscrive un testo in chiave professionale |
-| `preview_email` | `email_sender.py` | Genera anteprima prima dell'invio |
-| `send_email` | `email_sender.py` | Invia l'email via SMTP |
+| `preview_email` | `email_sender.py` | Genera anteprima di una nuova email |
+| `send_email` | `email_sender.py` | Invia una nuova email via SMTP |
+| `preview_reply` | `email_sender.py` | Genera anteprima di risposta a un'email |
+| `send_reply` | `email_sender.py` | Invia la risposta via SMTP mantenendo il thread |
 | `check_new_emails` | `email_reader.py` | Recupera le nuove email dalla inbox |
 | `read_latest_emails` | `email_reader.py` | Legge le mail recenti ignorando lo storico |
 | `filter_emails_by_sender` | `email_reader.py` | Cerca email per mittente |
