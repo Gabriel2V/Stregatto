@@ -1,25 +1,164 @@
-import stmlib
+import smtplib
 import json
 import re
-from email.mine.text import MIMEText
+from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from cat.mad_hatter.decorators import tool, hook
+from cat.mad_hatter.decorators import tool
 
-#hooks per il contesto
+from .main import send_ws_notification, generate_email_subject, get_settings
 
-@hook 
-def agent_prompt_prefix(prefix, cat):
+
+# Funzioni di utility interna
+
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
+
+
+def validate_email_input(data: dict) -> tuple[bool, str]:
     """
-    Questo hook inietta istruzioni di sistema nel prompt iniziale del Cat.
-    Definisce il suo ruolo, gli ordina di suggerire miglioramenti e
-    gli spiega come gestire la mancanza dell'oggetto della mail.
+    Valida i campi obbligatori di un payload email.
+    Restituisce (True, "") se valido, (False, messaggio_errore) altrimenti.
     """
-    email_context = """
-    Sei un assistente virtuale altamente qualificato nella gestione delle e-mail.
-    I tuoi compiti principali sono:
-    1. Aiutare l'utente a redigere e-mail chiare, professionali e prive di errori. Se il testo dell'utente è migliorabile, proponi sempre una versione rivista usando il tool 'improve_email_text'.
-    2. Raccogliere i dati per l'invio: destinatario, oggetto e corpo della mail.
-    3. SE L'UTENTE NON FORNISCE L'OGGETTO, DEVI GENERARLO TU automaticamente basandoti sul contenuto del corpo del messaggio prima di inviare l'e-mail.
-    4. Quando hai tutti i dati, usa il tool 'send_email' per inviare il messaggio.
+    recipient = data.get("recipient", "").strip()
+    body = data.get("body", "").strip()
+
+    if not recipient:
+        return False, "Errore: il campo 'recipient' è obbligatorio."
+    if not EMAIL_REGEX.match(recipient):
+        return False, f"Errore: l'indirizzo email '{recipient}' non è valido."
+    if not body or len(body) < 10:
+        return False, "Errore: il corpo del messaggio è troppo breve o vuoto (minimo 10 caratteri)."
+    return True, ""
+
+
+def parse_tool_input(tool_input: str) -> tuple[dict | None, str]:
     """
-    return f"{prefix}\n{email_context}"
+    Parsing dell'input JSON del tool.
+    Restituisce (dati, "") oppure (None, messaggio_errore).
+    """
+    try:
+        data = json.loads(tool_input)
+        return data, ""
+    except json.JSONDecodeError as e:
+        return None, f"Errore: il formato JSON fornito non è valido. Dettaglio: {e}"
+
+
+#  Tool anteprima mail
+
+@tool(return_direct=True)
+def preview_email(tool_input, cat):
+    """
+    Genera e mostra un'anteprima dell'email prima dell'invio effettivo.
+    Permette all'utente di verificare destinatario, oggetto e corpo prima di confermare.
+    L'input DEVE essere un JSON valido con questa struttura:
+    {"recipient": "email@esempio.com", "subject": "Oggetto opzionale", "body": "Testo del messaggio"}
+    Il campo 'subject' è facoltativo: se omesso viene generato automaticamente dall'AI.
+    """
+    data, error = parse_tool_input(tool_input)
+    if data is None:
+        send_ws_notification(cat, "Errore: formato dati non valido.", "error")
+        return error
+
+    valid, validation_error = validate_email_input(data)
+    if not valid:
+        send_ws_notification(cat, validation_error, "warning")
+        return validation_error
+
+    recipient = data["recipient"].strip()
+    body = data["body"].strip()
+    subject = data.get("subject", "").strip()
+    auto_note = ""
+
+    if not subject:
+        subject = generate_email_subject(body, cat)
+        auto_note = " (generato automaticamente dall'AI)"
+
+    preview_message = (
+        f"ANTEPRIMA EMAIL\n"
+        f"{'━' * 40}\n"
+        f"Destinatario : {recipient}\n"
+        f"Oggetto      : {subject}{auto_note}\n"
+        f"{'━' * 40}\n\n"
+        f"{body}\n\n"
+        f"{'━' * 40}"
+    )
+
+    send_ws_notification(cat, preview_message, "info")
+    return (
+        f"Anteprima generata e mostrata.\n"
+        f"Destinatario: {recipient}\n"
+        f"Oggetto: {subject}{auto_note}\n\n"
+        f"Conferma l'invio per procedere."
+    )
+
+#  Tool invio mail
+
+@tool(return_direct=True)
+def send_email(tool_input, cat):
+    """
+    Esegue l'invio effettivo dell'email tramite protocollo SMTP.
+    Usare SOLO dopo aver mostrato l'anteprima con 'preview_email' e ottenuto conferma dall'utente.
+    L'input DEVE essere un JSON valido con questa struttura:
+    {"recipient": "email@esempio.com", "subject": "Oggetto opzionale", "body": "Testo del messaggio"}
+    Il campo 'subject' è facoltativo: se omesso viene generato automaticamente dall'AI.
+    """
+    send_ws_notification(cat, "Preparazione invio in corso...", "info")
+
+    data, error = parse_tool_input(tool_input)
+    if data is None:
+        send_ws_notification(cat, "Errore: formato dati non valido.", "error")
+        return error
+
+    valid, validation_error = validate_email_input(data)
+    if not valid:
+        send_ws_notification(cat, validation_error, "warning")
+        return validation_error
+
+    recipient = data["recipient"].strip()
+    body = data["body"].strip()
+    subject = data.get("subject", "").strip()
+
+    if not subject:
+        subject = generate_email_subject(body, cat)
+
+    settings = get_settings(cat)
+
+    if not settings.sender_email or not settings.sender_password:
+        send_ws_notification(cat, "Errore: credenziali non configurate.", "error")
+        return "Errore di configurazione: le credenziali SMTP non sono impostate. Vai in Admin → Plugin → Email Assistant."
+
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = settings.sender_email
+        msg['To'] = recipient
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+        send_ws_notification(cat, f"Connessione a {settings.smtp_server}:{settings.smtp_port}...", "info")
+
+        with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
+            server.starttls()
+            server.login(settings.sender_email, settings.sender_password)
+            server.sendmail(settings.sender_email, recipient, msg.as_string())
+
+        success_msg = f"✓ Email inviata con successo a {recipient}"
+        send_ws_notification(cat, success_msg, "success")
+        return (
+            f"Operazione completata con successo.\n"
+            f"Destinatario: {recipient}\n"
+            f"Oggetto: {subject}"
+        )
+
+    except smtplib.SMTPAuthenticationError:
+        err = "Errore di autenticazione SMTP: verifica email e password nelle impostazioni."
+        send_ws_notification(cat, err, "error")
+        return err
+    except smtplib.SMTPException as e:
+        err = f"Errore SMTP: {e}"
+        send_ws_notification(cat, err, "error")
+        print(f"[EmailAssistant] {err}")
+        return err
+    except Exception as e:
+        err = f"Errore imprevisto durante l'invio: {e}"
+        send_ws_notification(cat, err, "error")
+        print(f"[EmailAssistant] {err}")
+        return err
