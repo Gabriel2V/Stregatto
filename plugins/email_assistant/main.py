@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field
 from cat.mad_hatter.decorators import tool, hook, plugin
-from cat.mad_hatter.mad_hatter import MadHatter
 
 
 #  Settings del plugin di cheshire cat ai
