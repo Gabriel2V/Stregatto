@@ -34,7 +34,7 @@ def sanitize_name(name: str) -> str:
 
 #  Tool salva template
 
-@tool
+@tool(return_direct=True)
 def save_email_template(tool_input, cat):
     """
     Salva un template di email riutilizzabile con un nome identificativo.
@@ -86,7 +86,7 @@ def save_email_template(tool_input, cat):
 
 #  Tool per usare template
 
-@tool
+@tool(return_direct=True)
 def use_email_template(tool_input, cat):
     """
     Carica un template salvato e prepara i dati per l'invio, sostituendo eventuali segnaposto.
@@ -146,7 +146,7 @@ def use_email_template(tool_input, cat):
 
 # Tool per lista template
 
-@tool
+@tool(return_direct=True)
 def list_email_templates(tool_input, cat):
     """
     Mostra tutti i template email salvati con nome, oggetto e anteprima del corpo.
@@ -172,7 +172,7 @@ def list_email_templates(tool_input, cat):
 
 #  Tool per eliminare template
 
-@tool
+@tool(return_direct=True)
 def delete_email_template(name, cat):
     """
     Elimina un template email salvato identificato dal suo nome.
