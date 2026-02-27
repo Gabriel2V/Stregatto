@@ -32,9 +32,23 @@ class TemplateDraft(BaseModel):
 # Forms
 
 @form
-class EmailCompositionForm:
+class EmailCompositionForm(CatForm):
     description = "Form per comporre e preparare una nuova email passo dopo passo"
     model_class = EmailDraft
+
+    start_examples = [
+        "voglio scrivere un'email",
+        "prepara una nuova email",
+        "scrivi una mail",
+        "componi un messaggio di posta"
+    ]
+    stop_examples = [
+        "annulla",
+        "ferma tutto",
+        "non voglio più scrivere l'email",
+        "esci",
+        "basta così"
+    ]
 
     def submit(self, form_data):
         # Recupero dati
@@ -43,7 +57,7 @@ class EmailCompositionForm:
         subject = form_data.get("subject", "")
 
         if not subject or subject.lower().strip() in ["auto", "generalo tu", "fai tu"]:
-            subject = generate_email_subject(body, self._cat)
+            subject = generate_email_subject(body,self.cat)
             auto_note = " (generato automaticamente dall'AI)"
         else:
             auto_note = ""
@@ -60,11 +74,24 @@ class EmailCompositionForm:
         )
 
 @form
-class TemplateCreationForm:
+class TemplateCreationForm(CatForm):
     description = "Form per creare e salvare un nuovo template email"
     model_class = TemplateDraft
 
+    start_examples = [
+        "voglio creare un template",
+        "salva un nuovo template",
+        "crea modello email",
+        "registra un template"
+    ]
+    stop_examples = [
+        "annulla",
+        "ferma tutto",
+        "esci",
+        "annulla template"
+    ]
+
     def submit(self, form_data):
-        result_message = _perform_save_template(self._cat, form_data)
+        result_message = _perform_save_template(self.cat, form_data)
         
         return result_message
