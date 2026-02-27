@@ -96,6 +96,16 @@ def use_email_template(tool_input, cat):
     Esempio segnaposto nel template: "Gentile {{nome}}, come sta {{azienda}}?"
     Dopo il caricamento, usa 'preview_email' per visualizzare l'anteprima e poi 'send_email' per inviare.
     """
+    # Pulisce la stringa
+    tool_input = tool_input.strip()
+    
+    # Bilancia le parentesi graffe nel caso il parser del framework ne abbia troncata una
+    open_braces = tool_input.count('{')
+    close_braces = tool_input.count('}')
+    if open_braces > close_braces:
+        tool_input += '}' * (open_braces - close_braces)
+
+    # Ora esegue il parsing
     try:
         data = json.loads(tool_input)
     except json.JSONDecodeError as e:
