@@ -24,6 +24,7 @@ Un agente AI per la composizione, ottimizzazione e gestione di email aziendali, 
 ```
 email_assistant/
 ├── main.py               # Settings, hook personalità, tool miglioramento testo
+├── forms.py              # Form interattivi per composizione email e creazione template
 ├── email_sender.py       # Tool preview_email, send_email, preview_reply, send_reply (SMTP)
 ├── email_reader.py       # Tool check_new_emails, filter_emails_by_sender (IMAP) + scheduler
 ├── email_templates.py    # Tool per salvare, usare, elencare ed eliminare template
@@ -83,11 +84,13 @@ Lo stesso processo si applica a **Outlook/Hotmail** e altri provider moderni.
 
 Interagisci con il plugin direttamente nella chat. L'agente riconosce automaticamente l'intento e invoca il tool corretto.
 
-### Inviare un'email
+### Inviare un'email (Procedura Guidata)
 
 ```
-Invia un'email a mario.rossi@azienda.it per comunicargli che 
-la riunione di domani è spostata alle 15:00.
+Utente: Voglio scrivere una nuova email.
+Cat: Certo, a quale indirizzo email vuoi inviare il messaggio?
+Utente: mario.rossi@azienda.it
+Cat: Qual è l'oggetto dell'email? (Scrivi 'auto' per generarlo)
 ```
 
 Il flusso prevede:
@@ -126,9 +129,8 @@ Mostrami tutte le email di fornitore@esempio.it
 
 **Salvare un template:**
 ```
-Salva un template chiamato "follow_up" con oggetto 
-"Follow-up riunione del {{data}}" e corpo 
-"Gentile {{nome}}, in seguito alla riunione di ieri..."
+Utente: Voglio creare un nuovo template.
+Cat: Che nome vuoi dare a questo template?
 ```
 
 **Usare un template:**
@@ -154,6 +156,8 @@ Elimina il template "follow_up"
 | Tool | File | Descrizione |
 |---|---|---|
 | `improve_email_text` | `main.py` | Riscrive un testo in chiave professionale |
+| `EmailCompositionForm` | `forms.py` | Modulo interattivo per preparare un'email |
+| `TemplateCreationForm` | `forms.py` | Modulo interattivo per creare un template |
 | `preview_email` | `email_sender.py` | Genera anteprima di una nuova email |
 | `send_email` | `email_sender.py` | Invia una nuova email via SMTP |
 | `preview_reply` | `email_sender.py` | Genera anteprima di risposta a un'email |
